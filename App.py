@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import Tk, ttk, messagebox
-import requests, time
+import requests, time, sys
 
 #1 minute counter
 COUNT=60
@@ -9,16 +9,12 @@ class App:
 
     def __init__(self):
 
-
-
         self.root = Tk()
-
-        self.user_word_entered=0
-        self.user_char_entered=0
         
         #var used for time
         self.timer=COUNT
-
+        self.user_word_entered=0
+        self.user_char_entered=0
         #used varibales for words displays
         self.begin_index=0
         self.end_index = 20
@@ -27,7 +23,7 @@ class App:
         self.word_act=""
         self.tap_count=0
 
-         #define geometry
+        #define geometry
         w = 1000
         self.h = 700
         ws = self.root.winfo_screenwidth()  
@@ -43,9 +39,7 @@ class App:
 
         #instruction
         self.frame_desc = ttk.LabelFrame(self.frame, text="Description ")
-        self.frame_desc.grid(row=0, column=0, padx=20, pady=40)
-
-        
+        self.frame_desc.grid(row=0, column=0, padx=20, pady=40)      
         self.label1 = ttk.Label(self.frame_desc, text="Type words bellow during one minute.")
         self.label1.grid(row=0, column=0)
         self.label2 = ttk.Label(self.frame_desc, text="Space between each world.")
@@ -59,8 +53,7 @@ class App:
         # timer
         self.frame_timer = ttk.LabelFrame(self.frame, text="")
         self.frame_timer.grid(row=0, column=1, padx=20, pady=10)
-
-        self.timerRest = Button(self.frame_timer, text="Restart", border=None)
+        self.timerRest = Button(self.frame_timer, text="Restart", border=None, command=self.restart)
         self.timerRest.grid(row=0, column=0)
         self.timerLabel = Label(self.frame_timer, text="", width=10, height=3,bg="white", font='Helvetica 15 bold')
         self.timerLabel.grid(row=1, column=0)
@@ -68,18 +61,14 @@ class App:
         #typing
         self.frame_typing = ttk.LabelFrame(self.frame, text="")
         self.frame_typing.grid(row=1, column=0,columnspan=2, padx=20, pady=0)
-
         self.parag = Text(self.frame_typing,wrap = WORD ,width=50, height=12, highlightbackground="white",font='Helvetica 13 bold', padx=20, pady=20)
         self.parag.grid(row=0, column=0)
         self.type_text = Text(self.frame_typing, width=30, height=1, highlightbackground="#091057", font='Helvetica 15 bold', padx=20, pady=20)
         self.type_text.grid(row=1, column=0) 
 
-        
-
         # result
         self.frame_res = ttk.LabelFrame(self.frame, text="Result ")
         self.frame_res.grid(row=2, column=0,columnspan=2, padx=20, pady=40)
-
         self.label12 = ttk.Label(self.frame_res, text="You typed :")
         self.label12.grid(row=0, column=0)
         self.res_text = Label(self.frame_res, text="Not Yet",background="yellow", font='Helvetica 11 bold')
@@ -100,17 +89,19 @@ class App:
         for widget in self.frame_res.winfo_children():
             widget.grid_configure(padx=60, pady=5)
 
-        #get word from website 
+        #get word from website's API
         self.get_words()
         
         #show word on gui
         self.show_words()
         
-        #bind keyboard
+        #bind keyboard for user type
         self.root.bind("<Key>", self.key_event)
 
         self.root.mainloop()
 
+
+    #update the text given to user
     def update_text(self):
         new_word = self.words[(self.end_index)-1]
         word_del = self.words[(self.begin_index)-1]
@@ -130,12 +121,13 @@ class App:
         self.user_word_entered+=1
 
 
+    #running countdown and show stats
     def countdown(self):
         #affichage du compteur
         self.timer-=1
         self.timerLabel.config(text = str(self.timer).upper(), background="red", foreground="white")
         
-        if self.timer==0:
+        if self.timer==0:#expired countdown
             self.type_text.configure(state='disabled')
             messagebox.showinfo("One minute left !", "See below your stats !!")
             
@@ -150,23 +142,27 @@ class App:
 
         self.timerLabel.after(1000,self.countdown)
 
-        #traitement fin de temps
+        
 
     def key_event(self, event):
         
         #if the use enter charactere
         if event.widget == self.type_text:
 
+            #start typing
             if self.timer==COUNT:
                 self.countdown()
 
+            #check if the word is fully entered by user
             if(event.keysym=='space'):
 
                 if self.tap_count==len(self.word_act)==(len(self.type_text.get("1.0",END))-2):
                     self.begin_index+=1
                     self.end_index+=1
-                    self.update_text()                
+                    self.update_text()       
+
             else:
+                #check if the user char entered is correct, and color it if so
                 if self.tap_count<len(self.word_act):
                     if event.char==(self.word_act[self.tap_count]):
                         
@@ -182,11 +178,7 @@ class App:
                             self.type_text.tag_add('color',"1.0",st)
                             self.type_text.tag_config('color', background="yellow")
                         
-
-
-
-
-
+    #initial text shown to the user
     def show_words(self):
         txt = ""
         for i in range(0, 50):
@@ -197,6 +189,7 @@ class App:
         self.word_act=self.words[0]
         self.tap_count=0
  
+    #get words from remote website
     def get_words(self):
         self.words = []
 
@@ -207,7 +200,9 @@ class App:
         else :
             for word in self.res.json():
                 self.words.append(word)
-                print(word)
-            
 
-       
+    #when restart button clicked    
+    def restart(self):
+        self.root.after(1,self.root.destroy())
+        App()
+        
