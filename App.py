@@ -1,16 +1,27 @@
 from tkinter import *
-from tkinter import Tk, ttk
-import requests
+from tkinter import Tk, ttk, messagebox
+import requests, time
+
+#1 minute counter
+COUNT=60
 
 class App:
 
     def __init__(self):
 
+
+
         self.root = Tk()
+
+        self.user_word_entered=0
+        self.user_char_entered=0
+        
+        #var used for time
+        self.timer=COUNT
 
         #used varibales for words displays
         self.begin_index=0
-        self.end_index = 50
+        self.end_index = 20
 
         #variables for typed word
         self.word_act=""
@@ -23,9 +34,10 @@ class App:
         hs = self.root.winfo_screenheight()
         xx = (ws/2) - (w/2)
         yy = (hs/2) - (self.h/2)
-        self.root.geometry('%dx%d+%d+%d' % (w-500, self.h-40, xx+140, yy))
+        self.root.geometry('%dx%d+%d+%d' % (w-400, self.h+80, xx+140, yy-20))
         self.root.resizable(False,False)
 
+        self.root.title("Typing Speed Test (DjRAH)")
         self.frame = ttk.Frame(self.root)
         self.frame.pack()
 
@@ -50,31 +62,40 @@ class App:
 
         self.timerRest = Button(self.frame_timer, text="Restart", border=None)
         self.timerRest.grid(row=0, column=0)
-        self.timerLabel = Label(self.frame_timer, text="", width=10, height=3,bg="white")
+        self.timerLabel = Label(self.frame_timer, text="", width=10, height=3,bg="white", font='Helvetica 15 bold')
         self.timerLabel.grid(row=1, column=0)
 
         #typing
         self.frame_typing = ttk.LabelFrame(self.frame, text="")
         self.frame_typing.grid(row=1, column=0,columnspan=2, padx=20, pady=0)
 
-        self.parag = Text(self.frame_typing,wrap = WORD ,width=50, height=12, highlightbackground="white")
+        self.parag = Text(self.frame_typing,wrap = WORD ,width=50, height=12, highlightbackground="white",font='Helvetica 13 bold', padx=20, pady=20)
         self.parag.grid(row=0, column=0)
-        self.type_text = Text(self.frame_typing, width=30, height=1.5, highlightbackground="#091057")
+        self.type_text = Text(self.frame_typing, width=30, height=1, highlightbackground="#091057", font='Helvetica 15 bold', padx=20, pady=20)
         self.type_text.grid(row=1, column=0) 
 
+        
 
         # result
         self.frame_res = ttk.LabelFrame(self.frame, text="Result ")
         self.frame_res.grid(row=2, column=0,columnspan=2, padx=20, pady=40)
 
+        self.label12 = ttk.Label(self.frame_res, text="You typed :")
+        self.label12.grid(row=0, column=0)
+        self.res_text = Label(self.frame_res, text="Not Yet",background="yellow", font='Helvetica 11 bold')
+        self.res_text.grid(row=0, column=1)
+
         self.CPM = Label(self.frame_res, text="CPM")
-        self.CPM.grid(row=0, column=0)
-        self.CPM_txt = Label(self.frame_res, text="", width=10, bg="white", height=2)
-        self.CPM_txt.grid(row=1, column=0)
+        self.CPM.grid(row=1, column=0)
+        self.CPM_txt = Label(self.frame_res, text="", width=10, bg="white", height=2, font='Helvetica 15 bold')
+        self.CPM_txt.grid(row=2, column=0)
         self.WPM = Label(self.frame_res, text="WPM")
-        self.WPM.grid(row=0, column=1)
-        self.WPM_txt = Label(self.frame_res, text="", width=10, bg="white",height=2)
-        self.WPM_txt.grid(row=1, column=1)
+        self.WPM.grid(row=1, column=1)
+        self.WPM_txt = Label(self.frame_res, text="", width=10, bg="white",height=2, font='Helvetica 15 bold')
+        self.WPM_txt.grid(row=2, column=1)
+
+        self.label11 = ttk.Label(self.frame_res, text="Average Word/Minute (WPM) is 3.3 !! (200words/Min)",background="yellow", font='Helvetica 11 bold')
+        self.label11.grid(row=3, column=0, columnspan=2)
 
         for widget in self.frame_res.winfo_children():
             widget.grid_configure(padx=60, pady=5)
@@ -95,20 +116,49 @@ class App:
         word_del = self.words[(self.begin_index)-1]
         ind = len(word_del)+1
         st = str('1.'+str(ind))
-        print(word_del)
+        
+        self.parag.configure(state='normal')
         (self.parag).delete("1.0", st)
         (self.type_text).delete("1.0",END)
         (self.parag).insert(END, new_word +" ")
+        self.parag.configure(state='disabled')
         self.word_act = self.words[self.begin_index]
         self.tap_count=0
+        
+        #update stats for WPM CPM
+        self.user_char_entered+=ind
+        self.user_word_entered+=1
 
 
+    def countdown(self):
+        #affichage du compteur
+        self.timer-=1
+        self.timerLabel.config(text = str(self.timer).upper(), background="red", foreground="white")
+        
+        if self.timer==0:
+            self.type_text.configure(state='disabled')
+            messagebox.showinfo("One minute left !", "See below your stats !!")
+            
+            wpm = str(round(self.user_word_entered/60,1))
+            cpm = str(round(self.user_char_entered/60,1))
+            res_txt = str(self.user_word_entered)+" words & "+str(self.user_char_entered)+" chars"
+            self.res_text.config(text=res_txt)
+            self.WPM_txt.configure(text=wpm)
+            self.CPM_txt.config(text=cpm)
 
+            return
+
+        self.timerLabel.after(1000,self.countdown)
+
+        #traitement fin de temps
 
     def key_event(self, event):
         
         #if the use enter charactere
         if event.widget == self.type_text:
+
+            if self.timer==COUNT:
+                self.countdown()
 
             if(event.keysym=='space'):
 
@@ -119,13 +169,18 @@ class App:
             else:
                 if self.tap_count<len(self.word_act):
                     if event.char==(self.word_act[self.tap_count]):
-                        self.tap_count+=1
-                        #colorer la lettre et tous le mot tapé
-                        st = "1."+ str(self.tap_count)
-                        self.parag.tag_add('color',"1.0",st)
-                        self.parag.tag_config('color', background="yellow")
-                        self.type_text.tag_add('color',"1.0",st)
-                        self.type_text.tag_config('color', background="yellow")
+                        
+                        if self.word_act.find(self.type_text.get("1.0",END).removesuffix("\n"))==0:#si il ya une lettre erroné 
+                            self.tap_count+=1
+                            #colorer la lettre et tous le mot tapé
+                            st = "1."+ str(self.tap_count)
+                            self.parag.configure(state='normal')
+                            self.parag.tag_add('color',"1.0",st)
+                            self.parag.tag_config('color', background="yellow")
+                            self.parag.configure(state='disabled')
+
+                            self.type_text.tag_add('color',"1.0",st)
+                            self.type_text.tag_config('color', background="yellow")
                         
 
 
@@ -136,8 +191,9 @@ class App:
         txt = ""
         for i in range(0, 50):
             txt+=self.words[i]+" "
-        
+        self.parag.configure(state='normal')
         (self.parag).insert(INSERT, txt)
+        self.parag.configure(state='disabled')
         self.word_act=self.words[0]
         self.tap_count=0
  
